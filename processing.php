@@ -25,61 +25,25 @@ if($version == "current"){
     $arr = array('Done' => 'yes', 'forecast' =>$forecast, 'chance' =>$chance, 'humidity' =>$humidity, 'sunrise' =>$sunrise, 'sunset' =>$sunset, 'high' =>$high, 'img' =>$img, 'low' =>$low, 'current' =>$current);// sends back data to display 
     echo json_encode($arr);// sends the response with correct json
 }
-if($version== "work"){
-    $websiteID=$_POST['websiteID'];
-    $requestType=$_POST['type'];
-    //$websiteID="279";
-    $frameIT="no";
-    if($requestType == "1"){
-        $command="SELECT * FROM BidSource.BSProcessPending where bswebsitemapid = ".$websiteID. " and (Status = 1 or Status =2);";
-    }else{
-            $command="SELECT * FROM BidSource.BSProcessPending where bswebsitemapid = ".$websiteID. " and (Status = 1 or Status =2 or Status =3);";
-        }
-    
-    
-    $htmlStatus="1";
-    $htmlPending="";
-    $htmlContent="";
-    $FirstLine="";
-    $htmlText='<h3 class="text-center">Files<a href="javascript:void(0)" class="closebtn text-dark" onclick="closeNav()">&times;</a></h3>    <div class="form-check text-center">    <input type="checkbox" class="form-check-input" id="requestType" onclick="changeRequest();">    <label class="form-check-label" for="requestType">Show Approved</label></div>';
-    $result = SQLSend($command);
+
+
+if($version == "forecast"){
+    $htmlText='<div class="row font-weight-bold"><div class="col">Date</div><div class="col ">Temp</div><div class="col ">Forecast</div><div class="col ">Rain Chance</div></div><hr>';
+    $result = SQLSend('SELECT * FROM weather.forecast;');
     while($row = mysqli_fetch_array($result)){
-        if($row[5]==1){
-        
-        if($htmlContent==""){
-            $htmlContent=$row[2];
-            $htmlPending=$row[0];
-            $htmlText.='<a class="btn btn-primary " name="'.$row[2].'" onclick="closeNav(); linkClick(\''.$row[2].'\'); ">'.$row[2].'</a>';
-        }else{
-            $htmlText.='<a class="btn btn-danger " name="'.$row[2].'"  onclick="closeNav();  linkClick(\''.$row[2].'\'); ">'.$row[2].'</a>';
-        }
-    }else if($row[5]==2){
-            $htmlText.='<a class="btn btn-warning " name="'.$row[2].'"  onclick="closeNav(); linkClick(\''.$row[2].'\'); ">'.$row[2].'</a>';
-        }else{
-            $htmlText.='<a class="btn btn-success " name="'.$row[2].'"  onclick="closeNav(); linkClick(\''.$row[2].'\'); ">'.$row[2].'</a>';
-        }
+        //var_dump($row);
+        $htmlText.='<div class="row font-weight-bold text-white"><div class="col">'.$row[1].'</div><div class="col ">'.$row[2].'</div><div class="col ">'.$row[3].'</div><div class="col ">'.$row[4].'</div></div>';
+        $htmlText.='<hr><div class="row font-weight-bold text-white"><div class="col">'.$row[5].'</div><div class="col ">'.$row[6].'</div><div class="col ">'.$row[7].'</div><div class="col ">'.$row[8].'</div></div>';
+        $htmlText.='<hr><div class="row font-weight-bold text-white"><div class="col">'.$row[9].'</div><div class="col ">'.$row[10].'</div><div class="col ">'.$row[11].'</div><div class="col ">'.$row[12].'</div></div>';
+        $htmlText.='<hr><div class="row font-weight-bold text-white"><div class="col">'.$row[13].'</div><div class="col ">'.$row[14].'</div><div class="col ">'.$row[15].'</div><div class="col ">'.$row[16].'</div></div>';
+        $htmlText.='<hr><div class="row font-weight-bold text-white"><div class="col">'.$row[17].'</div><div class="col ">'.$row[18].'</div><div class="col ">'.$row[19].'</div><div class="col ">'.$row[20].'</div></div>';
+        $htmlText.='<hr><div class="row font-weight-bold text-white"><div class="col">'.$row[21].'</div><div class="col ">'.$row[22].'</div><div class="col ">'.$row[23].'</div><div class="col ">'.$row[24].'</div></div>';
     }
-    $nameFile=$htmlContent;
-    if(strpos($htmlContent, '.') == false){
-        $filename="/media/bidsource/pending/".$websiteID."/".$htmlContent;
-        //$filename="/media/bidsource/pending/279/b3b25d414c2d46549c5cc8aeec6a403c";
-        $htmlContent = file_get_contents($filename);
-        $FirstLine = trim(fgets(fopen($filename, 'r')));
-    }else{
-     $frameIT="yes";// if it has a file extension then it needs to be framed   
-     $initial="/media/bidsource/pending/".$websiteID."/".$htmlContent;
-     copy($initial, "/var/www/html/darwin/temp/".$htmlContent);
-     $htmlContent= "darwin/temp/".$htmlContent;
-    }
-    //echo $htmlContent;
-    $command='UPDATE `BidSource`.`BSProcessPending`SET `Status` = 2, `processstartdatetime` = now() WHERE `PendingID` = '.$htmlPending.' ;';
-    SQLSend($command);
-    $arr = array('Done' => 'yes', 'errors' => "",'fileName'=>"test", 'Data' =>$htmlText, 'Content' =>$htmlContent, 'status' =>$htmlStatus, 'frame' =>$frameIT, 'pending' =>$htmlPending, 'filename' =>$nameFile, 'firstLine' =>$FirstLine);// sends back data to display 
+   
+    $arr = array('Done' => 'yes', 'Data' =>$htmlText);// sends back data to display 
     echo json_encode($arr);// sends the response with correct json
-
-
-
 }
+
 
 
 function SQLSend($query){
