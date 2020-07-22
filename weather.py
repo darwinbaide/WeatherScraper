@@ -10,7 +10,7 @@ import mysql1
 
 def loadMain(site1):# loads the website in selenium and returns the data
     
-    """ try:
+    try:
         opts = Options()
         opts.headless = True # tells the script to run chrome headless
         opts.add_experimental_option('excludeSwitches', ['enable-logging'])# dont output the console errors for the webpage
@@ -25,7 +25,7 @@ def loadMain(site1):# loads the website in selenium and returns the data
         return text
     except:
         print("Timeout.")
-        return "Timeout." """
+        return "Timeout." 
 
 
 def updateCurrent():
@@ -160,19 +160,6 @@ def main():
         print("End of Session, Sleeping for thirty minutes")
         time.sleep(1800)# 30 minutes
 
-#main()
+main()
 
 
-chrome_options = Options()
-chrome_options.headless = True # tells the script to run chrome headless
-chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])# dont output the console errors for the webpage
-chrome_options.binary_location = "/opt/google/chrome/chrome"
-
-driver = Chrome('/var/www/html/chromedriver/chromedriver',options=chrome_options)  # Optional argument, if not specified will search path.
-driver.get('https://www.wunderground.com/weather/us/nj/elizabeth')
-
-root = driver.find_element_by_xpath('/*')# find root
-text=root.get_attribute('innerHTML')# get inner html of root and whole document
-driver.quit() 
-print(text)
-driver.quit()
