@@ -15,7 +15,7 @@ import mysql1
 
 site1="https://www.wunderground.com/weather/us/nj/elizabeth"
 
-
+# testing for linux
 
 opts = Options()
 opts.headless = True # tells the script to run chrome headless

@@ -1,3 +1,5 @@
+/* These are the create commands for the weather tables */
+
 CREATE TABLE `forecast` (
   `num` int(11) NOT NULL,
   `oneDate` varchar(45) DEFAULT NULL,

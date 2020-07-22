@@ -1,7 +1,7 @@
 async function loadWeather() {
     version = 'forecast';
     total = "version=".concat(version); // This will hold the data to send
-    let responsive = await fetch("processing.php", {
+    let responsive = await fetch("processing.php", { /* Fetch the data from the API for the forecast html */
         method: 'post',
         headers: {
             "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"

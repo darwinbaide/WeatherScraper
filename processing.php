@@ -1,13 +1,12 @@
 <?php
 # Start of Data aquisition
-
-
+//Handler for the mysql requests into the database 
 $version = $_POST['version'];// grabs the version to see what function to go into
 //$version="current";
 
 
 
-if($version == "current"){
+if($version == "current"){//this one will send the data for each individual element back
     
     $result = SQLSend('SELECT * FROM weather.today;');
     while($row = mysqli_fetch_array($result)){
@@ -27,7 +26,7 @@ if($version == "current"){
 }
 
 
-if($version == "forecast"){
+if($version == "forecast"){// this one will write the html for the table and send that back as a whole 
     $htmlText='<div class="row font-weight-bold"><div class="col">Date</div><div class="col ">Temp</div><div class="col ">Forecast</div><div class="col ">Rain Chance</div></div><hr>';
     $result = SQLSend('SELECT * FROM weather.forecast;');
     while($row = mysqli_fetch_array($result)){
@@ -47,11 +46,7 @@ if($version == "forecast"){
 
 
 function SQLSend($query){
-    
-    $dbhost = "127.0.0.1:3306";
-    $dbuser = "darwin";
-    $dbpass = "Db12345678";
-    $dbname = "weather";
+    include 'config.php';# include the config file
     $mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
     /* check connection */
     if ($mysqli->connect_errno) {
