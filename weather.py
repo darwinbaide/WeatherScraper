@@ -44,6 +44,8 @@ def updateCurrent():
     high=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[2]/div/div/div[1]/span[1]')[0].text
     low=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[2]/div/div/div[1]/span[3]')[0].text
     current=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[2]/div/div/div[2]/lib-display-unit/span/span[1]')[0].text
+    image=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[3]/div/div[1]/img')[0].attrib['src']
+    image="https://"+image.strip("//")
     print("current: "+current) # print out the current climate 
 
 
@@ -59,7 +61,7 @@ def updateCurrent():
     print("current: "+current) 
      """
         
-    todayCommand="UPDATE weather.today SET forecast = '"+forecast+"',rainChance = '"+rainChance+"',humidity = '"+humidity+"',sunrise = '"+sunrise+"',sunset = '"+sunset+"',wind = '"+wind+"',high = '"+high+"',low = '"+low+"',current = '"+current+"' WHERE num = 1;"
+    todayCommand="UPDATE weather.today SET forecast = '"+forecast+"',rainChance = '"+rainChance+"',humidity = '"+humidity+"',sunrise = '"+sunrise+"',sunset = '"+sunset+"',wind = '"+wind+"',high = '"+high+"',low = '"+low+"',current = '"+current+"',image = '"+image+"' WHERE num = 1;"
     mysql1.runCommand(todayCommand)# run command to update data
 
 

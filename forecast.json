@@ -1,0 +1,21 @@
+{
+    "chanceflurries": "snow wind",
+    "chancerain": "rain",
+    "chancesleat": "sleet",
+    "chancesnow": "snow",
+    "chancetstorms": "thunderstorm",
+    "clear": "day sunny",
+    "cloudy": "day cloudy",
+    "flurries": "snow wind",
+    "hazy": "day haze",
+    "mostlycloudy": "day cloudy",
+    "mostlysunny": "day-sunny",
+    "partlycloudy": "day cloudy",
+    "partlysunny": "day sunny",
+    "rain": "showers",
+    "sleat": "sleet",
+    "snow": "snow",
+    "sunny": "day-sunny",
+    "tstorms": "thunderstorm",
+    "unknown": "day-sunny"
+}

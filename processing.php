@@ -1,4 +1,5 @@
 <?php
+
 # Start of Data aquisition
 //Handler for the mysql requests into the database 
 $version = $_POST['version'];// grabs the version to see what function to go into
@@ -19,8 +20,12 @@ if($version == "current"){//this one will send the data for each individual elem
         $high ="High:".str_replace("°","",strval($row["high"]))."°";
         $low ="Low".str_replace("°","",strval($row["low"]))."°";
         $current =str_replace("°","",strval($row["current"]))."°";
+        $img='<img src="'.$row["image"].'" style="width:100%" class="img-responsive" />';
     }
-    $img='<img src="svg/wi-hail.svg" style="width:100%" class="img-responsive" />';
+    $strJsonFileContents = file_get_contents("forecast.json");
+    $array = json_decode($strJsonFileContents, true);
+
+    
     $arr = array('Done' => 'yes', 'forecast' =>$forecast, 'chance' =>$chance, 'humidity' =>$humidity, 'sunrise' =>$sunrise, 'sunset' =>$sunset, 'high' =>$high, 'img' =>$img, 'low' =>$low, 'current' =>$current);// sends back data to display 
     echo json_encode($arr);// sends the response with correct json
 }
