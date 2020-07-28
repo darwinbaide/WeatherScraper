@@ -1,13 +1,13 @@
 <?php
-
 # Start of Data aquisition
-//Handler for the mysql requests into the database 
+
+
 $version = $_POST['version'];// grabs the version to see what function to go into
 //$version="current";
 
 
 
-if($version == "current"){//this one will send the data for each individual element back
+if($version == "current"){
     
     $result = SQLSend('SELECT * FROM weather.today;');
     while($row = mysqli_fetch_array($result)){
@@ -20,18 +20,14 @@ if($version == "current"){//this one will send the data for each individual elem
         $high ="High:".str_replace("°","",strval($row["high"]))."°";
         $low ="Low".str_replace("°","",strval($row["low"]))."°";
         $current =str_replace("°","",strval($row["current"]))."°";
-        $img='<img src="'.$row["image"].'" style="width:100%" class="img-responsive" />';
     }
-    $strJsonFileContents = file_get_contents("forecast.json");
-    $array = json_decode($strJsonFileContents, true);
-
-    
+    $img='<img src="svg/wi-hail.svg" style="width:100%" class="img-responsive" />';
     $arr = array('Done' => 'yes', 'forecast' =>$forecast, 'chance' =>$chance, 'humidity' =>$humidity, 'sunrise' =>$sunrise, 'sunset' =>$sunset, 'high' =>$high, 'img' =>$img, 'low' =>$low, 'current' =>$current);// sends back data to display 
     echo json_encode($arr);// sends the response with correct json
 }
 
 
-if($version == "forecast"){// this one will write the html for the table and send that back as a whole 
+if($version == "forecast"){
     $htmlText='<div class="row font-weight-bold"><div class="col">Date</div><div class="col ">Temp</div><div class="col ">Forecast</div><div class="col ">Rain Chance</div></div><hr>';
     $result = SQLSend('SELECT * FROM weather.forecast;');
     while($row = mysqli_fetch_array($result)){
@@ -51,7 +47,11 @@ if($version == "forecast"){// this one will write the html for the table and sen
 
 
 function SQLSend($query){
-    include 'config.php';# include the config file
+    
+    $dbhost = "96.234.116.226";
+    $dbuser = "darwin";
+    $dbpass = "Db12345678";
+    $dbname = "weather";
     $mysqli = new mysqli($dbhost, $dbuser, $dbpass, $dbname);
     /* check connection */
     if ($mysqli->connect_errno) {

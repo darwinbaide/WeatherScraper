@@ -1,7 +1,12 @@
-import sys, os
-from selenium import webdriver
+import sys
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
+from selenium import webdriver
 import time
 import pickle
 from lxml import etree
@@ -11,30 +16,27 @@ import mysql1
 def loadMain(site1):# loads the website in selenium and returns the data
     
     try:
-        opts = Options()
-        opts.headless = True # tells the script to run chrome headless
-        opts.add_experimental_option('excludeSwitches', ['enable-logging'])# dont output the console errors for the webpage
-        if os.name != 'nt': #Depending on what os, it will use hardcoded location for resources
-            opts.binary_location = "/opt/google/chrome/chrome"
-            browser = Chrome('/var/www/html/chromedriver/chromedriver',options=opts)# sets the options to the browser object
-        else:
-            browser = Chrome(options=opts)# sets the options to the browser object
-        browser.get(site1) # opens the given url
-        browser.execute_script("return document.documentElement.innerHTML;")# will wait for page to load
-        time.sleep(5)#wait a bit to allow for background scripts to end
-        root = browser.find_element_by_xpath('/*')# find root
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')# run headless
+        chrome_options.add_argument('--no-sandbox')# tell chrome not to run in sandbox mode
+        chrome_options.add_argument('--disable-dev-shm-usage')# disable test mesages while running
+        driver = webdriver.Chrome('/var/www/html/darwin/WeatherScraper/chromedriver',options=chrome_options)# the exact location of the chromedriver
+
+        #driver = Chrome(executable_path="/var/www/html/darwin/WeatherScraper/chromedriver",chrome_options=chrome_options)  # Optional argument, if not specified will search path.
+        driver.get(site1)
+        time.sleep(6)# wait for the rest of the site to load, might take a few seconds for javascript to finish after site actually loads
+        root = driver.find_element_by_xpath('/*')# find root
         text=root.get_attribute('innerHTML')# get inner html of root and whole document
-        browser.quit() 
-        return text
+        driver.quit()#kill chrome after script ran 
+        return str(text.encode(encoding='UTF-8',errors='strict'))# encode in utf for any special characters and then convert fro byte to string and return
     except:
         print("Timeout.")
-        return "Timeout." 
+        return "Timeout."
 
 
 def updateCurrent():
-    response = requests.get("https://www.wunderground.com/weather/us/nj/elizabeth")# website target to scrape
-    tree = etree.HTML(response.text)# create tree for extraction
-    """ Following is grabbing the element off the website with the xpath of the individual elements that we want """
+    response = requests.get("https://www.wunderground.com/weather/us/nj/elizabeth")
+    tree = etree.HTML(response.text)
     forecast=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[3]/div/div[1]/p')[0].text
     rainChance=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[3]/div/lib-city-today-forecast/div/div[1]/div/div/div/a[1]')[0].text
     humidity=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[2]/div/div[1]/div[1]/lib-additional-conditions/lib-item-box/div/div[2]/div/div[5]/div[2]/lib-display-unit/span/span[1]')[0].text+"%"
@@ -43,13 +45,9 @@ def updateCurrent():
     wind=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[3]/div/div[2]/p/strong/lib-display-unit/span/span[1]')[0].text+" mph"
     high=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[2]/div/div/div[1]/span[1]')[0].text
     low=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[2]/div/div/div[1]/span[3]')[0].text
-    current=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[2]/div/div/div[2]/lib-display-unit/span/span[1]')[0].text
-    image=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[3]/div/div[1]/img')[0].attrib['src']
-    image="https://"+image.strip("//")
-    print("current: "+current) # print out the current climate 
-
-
-    """     # priont for debugging
+    current=tree.xpath('/html/body/app-root/app-today/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div[1]/lib-city-current-conditions/div/div[2]/div/div/div[2]/lib-display-unit/span/span[1]')[0].text+"°"
+    print("current: "+current) 
+    """     
     print("forecast: "+forecast)
     print("rain: "+rainChance)
     print("humidity: "+humidity)
@@ -61,64 +59,54 @@ def updateCurrent():
     print("current: "+current) 
      """
         
-    todayCommand="UPDATE weather.today SET forecast = '"+forecast+"',rainChance = '"+rainChance+"',humidity = '"+humidity+"',sunrise = '"+sunrise+"',sunset = '"+sunset+"',wind = '"+wind+"',high = '"+high+"',low = '"+low+"',current = '"+current+"',image = '"+image+"' WHERE num = 1;"
-    mysql1.runCommand(todayCommand)# run command to update data
+    todayCommand="UPDATE weather.today SET forecast = '"+forecast+"',rainChance = '"+rainChance+"',humidity = '"+humidity+"',sunrise = '"+sunrise+"',sunset = '"+sunset+"',wind = '"+wind+"',high = '"+high+"',low = '"+low+"',current = '"+current+"' WHERE num = 1;"
+    #print(todayCommand)
+    mysql1.runCommand(todayCommand)
 
 
 
-def pathTemp(target):# xpath creator as the different days just differ by the index of one element, so that only one thing needs to be change to update an xpath
-    return "/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a["+str(target)+"]/div/span[1]/span[1]"
-def pathTemp2(target):
-    return "/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a["+str(target)+"]/div/span[1]/span[3]"
-def pathDate(target):
-    return "/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[1]/a["+str(target)+"]/div/div"
-def pathForecast(target):
-    return "/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a["+str(target)+"]/div/div"
-def pathChance(target):
-    return "/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[3]/a["+str(target)+"]/div/div/span"
 
 
 def updateForecast():
 
     # the 10 day forecast has all the relavent data in a loaded container , so using selenium to load the page and wait a bit before returning the html
-    response= loadMain("https://www.wunderground.com/forecast/us/nj/elizabeth")# will grab the html of the data but will load the website with selenium first to allow the data to be retreieved from the javascripts that run and then return it
-    
+    response= loadMain("https://www.wunderground.com/forecast/us/nj/elizabeth")
+
     tree = etree.HTML(response)
-    #The following are the xpaths for the four elements i want with simple repetition 
-    oneTemp=tree.xpath(pathTemp(1))[0].text
-    oneTemp=oneTemp+"/"+tree.xpath(pathTemp(1))[0].text# this one has high and low but i want it in one entry so grabbing both and combining into one string
-    twoTemp=tree.xpath(pathTemp(2))[0].text
-    twoTemp=twoTemp+"/"+tree.xpath(pathTemp(2))[0].text
-    threeTemp=tree.xpath(pathTemp(3))[0].text
-    threeTemp=threeTemp+"/"+tree.xpath(pathTemp(3))[0].text
-    fourTemp=tree.xpath(pathTemp(4))[0].text
-    fourTemp=fourTemp+"/"+tree.xpath(pathTemp(4))[0].text
-    fiveTemp=tree.xpath(pathTemp(5))[0].text
-    fiveTemp=fiveTemp+"/"+tree.xpath(pathTemp(5))[0].text
-    sixTemp=tree.xpath(pathTemp(6))[0].text
-    sixTemp=sixTemp+"/"+tree.xpath(pathTemp(6))[0].text
+    oneTemp=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[1]/div/span[1]/span[1]')[0].text
+    oneTemp=oneTemp+"/"+tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[1]/div/span[1]/span[3]')[0].text
+    twoTemp=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[2]/div/span[1]/span[1]')[0].text
+    twoTemp=twoTemp+"/"+tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[2]/div/span[1]/span[3]')[0].text
+    threeTemp=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[3]/div/span[1]/span[1]')[0].text
+    threeTemp=threeTemp+"/"+tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[3]/div/span[1]/span[3]')[0].text
+    fourTemp=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[4]/div/span[1]/span[1]')[0].text
+    fourTemp=fourTemp+"/"+tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[4]/div/span[1]/span[3]')[0].text
+    fiveTemp=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[5]/div/span[1]/span[1]')[0].text
+    fiveTemp=fiveTemp+"/"+tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[5]/div/span[1]/span[3]')[0].text
+    sixTemp=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[6]/div/span[1]/span[1]')[0].text
+    sixTemp=sixTemp+"/"+tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[6]/div/span[1]/span[3]')[0].text
 
-    oneDate=tree.xpath(pathDate(1))[0].text
-    twoDate=tree.xpath(pathDate(2))[0].text
-    threeDate=tree.xpath(pathDate(3))[0].text
-    fourDate=tree.xpath(pathDate(4))[0].text
-    fiveDate=tree.xpath(pathDate(5))[0].text
-    sixDate=tree.xpath(pathDate(6))[0].text
+    oneDate=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[1]/a[1]/div/div')[0].text
+    twoDate=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[1]/a[2]/div/div')[0].text
+    threeDate=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[1]/a[3]/div/div')[0].text
+    fourDate=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[1]/a[4]/div/div')[0].text
+    fiveDate=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[1]/a[5]/div/div')[0].text
+    sixDate=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[1]/a[6]/div/div')[0].text
 
-    oneForecast=tree.xpath(pathForecast(1))[0].text
-    twoForecast=tree.xpath(pathForecast(2))[0].text
-    threeForecast=tree.xpath(pathForecast(3))[0].text
-    fourForecast=tree.xpath(pathForecast(4))[0].text
-    fiveForecast=tree.xpath(pathForecast(5))[0].text
-    sixForecast=tree.xpath(pathForecast(6))[0].text
+    oneForecast=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[1]/div/div')[0].text
+    twoForecast=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[2]/div/div')[0].text
+    threeForecast=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[3]/div/div')[0].text
+    fourForecast=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[4]/div/div')[0].text
+    fiveForecast=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[5]/div/div')[0].text
+    sixForecast=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[2]/a[6]/div/div')[0].text
 
-    oneChance=tree.xpath(pathChance(1))[0].text
-    twoChance=tree.xpath(pathChance(2))[0].text
-    threeChance=tree.xpath(pathChance(3))[0].text
-    fourChance=tree.xpath(pathChance(4))[0].text
-    fiveChance=tree.xpath(pathChance(5))[0].text
-    sixChance=tree.xpath(pathChance(6))[0].text
-    """ # for debugging
+    oneChance=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[3]/a[1]/div/div/span')[0].text
+    twoChance=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[3]/a[2]/div/div/span')[0].text
+    threeChance=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[3]/a[3]/div/div/span')[0].text
+    fourChance=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[3]/a[4]/div/div/span')[0].text
+    fiveChance=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[3]/a[5]/div/div/span')[0].text
+    sixChance=tree.xpath('/html/body/app-root/app-tenday/one-column-layout/wu-header/sidenav/mat-sidenav-container/mat-sidenav-content/div/section/div[3]/div[1]/div/div[1]/div/lib-forecast-chart/div/div/div/lib-forecast-chart-header-daily/div/div/div/div[3]/a[6]/div/div/span')[0].text
+    """ 
     print("1----temp:"+oneTemp)
     print("1----date:"+oneDate)
     print("1----forecast:"+oneForecast)
@@ -151,13 +139,16 @@ def updateForecast():
     """
 
     forecastCommand="UPDATE forecast SET oneDate = '"+oneDate+"',oneTemp = '"+oneTemp+"',oneForecast = '"+oneForecast+"',oneChance = '"+oneChance+"',twoDate = '"+twoDate+"',twoTemp = '"+twoTemp+"',twoForecast = '"+twoForecast+"',twoChance = '"+twoChance+"',threeDate = '"+threeDate+"',threeTemp = '"+threeTemp+"',threeForecast = '"+threeForecast+"',threeChance = '"+threeChance+"',fourDate = '"+fourDate+"',fourTemp = '"+fourTemp+"',fourForecast = '"+fourForecast+"',fourChance = '"+fourChance+"',fiveDate = '"+fiveDate+"',fiveTemp = '"+fiveTemp+"',fiveForecast = '"+fiveForecast+"',fiveChance = '"+fiveChance+"',sixDate = '"+sixDate+"',sixTemp = '"+sixTemp+"',sixForecast = '"+sixForecast+"',sixChance = '"+sixChance+"'  ,timestamp = now() WHERE num = 0;"
-    mysql1.runCommand(forecastCommand)
+    forecastCommand=forecastCommand.replace("\\xc2\\xb0","")
+    #print(forecastCommand)
+    mysql1.runCommand(forecastCommand)# added a repplace as the temperature symbol gets swapped in the encoding
 
 
 
 
 def main():
     count=0
+    
     while True:# run forever
         print("Start of session")
         try:
@@ -166,7 +157,7 @@ def main():
         except:
             print("Error in updating current")
         
-        if(count>7):# every 8 passes it will update the forecast as that doesnt change as often
+        if(count>8):# every 8 passes it will update the forecast as that doesnt change as often
             try:
                 updateForecast()
                 print("Ran forecast updater")
@@ -176,8 +167,9 @@ def main():
         else:
             count=count+1# if not yet 8 then increment
         print("End of Session, Sleeping for thirty minutes")
-        time.sleep(1800)# 30 minutes
+        time.sleep(900)# 15 minute wait
 
 main()
-
+#updateForecast()
+#loadMain("https://www.wunderground.com/forecast/us/nj/elizabeth")
 

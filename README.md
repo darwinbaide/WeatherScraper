@@ -7,11 +7,3 @@ current.html will display the infor for todays forecast and be autopopulated wit
 forecast.html will dispaly the data for the 6-day forecast and populate at load.
 
 These are meant to be iframed into a dashboard and not modelled for vieweing independently, although they can be.
-
-
-![GitHub Logo](https://github.com/darwinbaide/images/blob/master/current.PNG)
-
-
-
-
-![GitHub Logo](https://github.com/darwinbaide/images/blob/master/forecast.PNG)
